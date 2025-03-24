@@ -23,24 +23,33 @@ function compute_ray_paths(atm::Atmosphere, impact_params::Vector{Float64})
     return rays
 end
 
-# Query ExoMol API to get line lists
-function get_exomol_data(species::String, temperature::Float64)
-    url = "https://api.exomol.com/?species=$species&temp=$temperature"
-    response = HTTP.get(url)
-    return JSON.parse(String(response.body))
+# Query ExoMol API to get line lists correctly
+function get_exomol_data(molecule::String, iso::String, temperature::Float64)
+    base_url = "https://www.exomol.com/db/" * molecule * "/" * iso * "/"
+    states_url = base_url * "latest/" * molecule * ".states.bz2"
+    trans_url = base_url * "latest/" * molecule * ".trans.bz2"
+    
+    println("Fetching ExoMol data for $molecule ($iso)")
+    
+    states = HTTP.get(states_url)
+    trans = HTTP.get(trans_url)
+    
+    return Dict("states" => states.body, "trans" => trans.body)
 end
 
 # Compute the transmission spectrum
 function compute_spectrum(atm::Atmosphere, impact_params::Vector{Float64}, wavelengths::Vector{Float64})
     rays = compute_ray_paths(atm, impact_params)
-    spectrum = zeros(length(wavelengths))
+    spectrum = ones(length(wavelengths))
     
     for (i, λ) in enumerate(wavelengths)
         total_opacity = 0.0
         for path in rays
             for (alt, P, T) in path
                 for (species, density) in atm.species_density
-                    cross_section = get_exomol_data(species, T)["cross_section"]
+                    exomol_data = get_exomol_data(species, "1", T)
+                    # Assume we extract cross-section from exomol_data
+                    cross_section = 1e-22  # Placeholder, replace with proper parsing
                     total_opacity += cross_section * density
                 end
             end
