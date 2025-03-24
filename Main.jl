@@ -26,7 +26,7 @@ function load_opacity(species::Symbol)
 end
 
 # Interpolate opacities for each species
-opacity_data = Dict(sp => linear_interpolation(load_opacity(sp)...) for sp in species)
+opacity_data = Dict(sp => linear_interpolation(load_opacity(sp)...) for sp in species) 
 
 # === Compute Optical Depth ===
 function optical_depth(λ::Float64, b::Float64)
